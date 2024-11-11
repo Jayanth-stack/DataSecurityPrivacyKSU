@@ -1,0 +1,23 @@
+2024-11-11 12:23:31,013 ERROR: Error creating database: 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)
+2024-11-11 12:23:31,014 ERROR: Database setup failed: cannot access local variable 'conn' where it is not associated with a value
+2024-11-11 12:27:11,979 INFO: Created table users
+2024-11-11 12:27:11,997 INFO: Created table records
+2024-11-11 12:27:11,998 INFO: Database and tables created successfully
+2024-11-11 12:27:12,085 INFO: Admin user created successfully
+2024-11-11 12:30:39,878 INFO: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-11-11 12:30:39,878 INFO: [33mPress CTRL+C to quit[0m
+2024-11-11 12:40:07,398 ERROR: Error connecting to MySQL: 1045 (28000): Access denied for user 'your_username'@'localhost' (using password: YES)
+2024-11-11 12:40:07,398 ERROR: Error creating database: 1045 (28000): Access denied for user 'your_username'@'localhost' (using password: YES)
+2024-11-11 12:40:07,398 ERROR: Database setup failed: 1045 (28000): Access denied for user 'your_username'@'localhost' (using password: YES)
+2024-11-11 12:40:53,471 INFO: Created table users
+2024-11-11 12:40:53,473 INFO: Created table records
+2024-11-11 12:40:53,473 INFO: Database and tables created successfully
+2024-11-11 12:43:41,098 INFO: [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2024-11-11 12:43:41,098 INFO: [33mPress CTRL+C to quit[0m
+2024-11-11 12:43:59,581 INFO: 127.0.0.1 - - [11/Nov/2024 12:43:59] "[32mGET / HTTP/1.1[0m" 302 -
+2024-11-11 12:43:59,591 ERROR: 127.0.0.1 - - [11/Nov/2024 12:43:59] code 400, message Bad request version ('Cñ±ryàX÷\x84\x8bFâµ>VÌíx')
+2024-11-11 12:43:59,591 INFO: 127.0.0.1 - - [11/Nov/2024 12:43:59] "[31m[1m\x16\x03\x01\x07\x00\x01\x00\x06ü\x03\x03xJÝD}Ê¡KÔû\x9e¬Ñ\x11Z±f8Å\x924Æ=ìÝs^\x05î\x8cKÊ èâ\x9a«àô3\x85$\x86L³¦_x\x8dé¬\x07¨\\q\x10D¶Ú\x03À\x81\x1a\x8f\x1d\x00 úú\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06\x93ªª\x00\x00\x00\x0b\x00\x02\x01\x00\x00+\x00\x07\x06ZZ\x03\x04\x03\x03\x00#\x00\x00\x00\x1b\x00\x03\x02\x00\x02Di\x00\x05\x00\x03\x02h2\x00\x12\x00\x00\x00\x10\x00\x0e\x00\x0c\x02h2\x08http/1.1\x003\x04ï\x04íêê\x00\x01\x00c\x99\x04À¾"X@\x8c?¦úÈ'Ê\x92ùÿ^¢\x03\x8fÝ\x9c7özc(ù®Õú«YB\x9190ªé\x8ceW-¦»V\x94\x8a\x06¸Û³y\x14,\x96#}¤u\x1aä\x94\x1e¢\x07½\x03Â²*[O\x91æ½ï\x03\x9e\x99üªòk4_<\x03¼³JWª\x83Õ\x15Ìé\x87\x8cæ9È?hxóÛ«Gé""\x0cHc\x8beS|\x89\x19Ä\x02ãK$ò\x9b¶\x03õ0gÖ°¯Ø\x82H\x10\x91L\x8a+L\x814ä³{i++\x8d\x06Ë\x8aÔ3LdwÏ\x00uz9\x8báÉP°\x8cÂu4\x7f\x14À\x82q$ÌÕÕ\x18ól¬Íj\x9dgW\x916E¿\x885)3ç\x9a:E0þÒÍ\x9a©DoQL¿{3§k?e¢\x8bÏX?R\x12\x96#¬5~Y\x11¨f¯Q\x80\\%\x86WïÚWÅÑÂ£\x1c\x1dï\x12\x01Xi\x96½Ä\x16fÃ\x06xÚ1vp\x7fôZFG !\x80\x80@J'\x7fì\x09Cñ±ryàX÷\x84\x8bFâµ>VÌíx[0m" 400 -
+2024-11-11 12:43:59,593 ERROR: 127.0.0.1 - - [11/Nov/2024 12:43:59] code 400, message Bad request version ('\x00\x02\x01\x00\x00\x05\x00\x05\x01\x00\x00\x00\x00\x003\x04ï\x04í\x8a\x8a\x00\x01\x00c\x99\x04Àx¾p0yLW~§ß\x9b>m\x8c®\x90\x93Ïq')
+2024-11-11 12:43:59,594 INFO: 127.0.0.1 - - [11/Nov/2024 12:43:59] "[31m[1m\x16\x03\x01\x06à\x01\x00\x06Ü\x03\x03]\x1b9]êïUKl©ãJºV #\x7f!æ\x1c)í\x15xTt8\x0c[Ó^\x9c §Yâ7\x88&%\x9a\x9aU¥½¨£²Ðî\x11èÍ\x03\x05'²eãiô­D;¬\x00 zz\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06s::\x00\x00\x00\x0b\x00\x02\x01\x00\x00\x05\x00\x05\x01\x00\x00\x00\x00\x003\x04ï\x04í\x8a\x8a\x00\x01\x00c\x99\x04Àx¾p0yLW~§ß\x9b>m\x8c®\x90\x93Ïq[0m" 400 -
