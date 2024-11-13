@@ -316,4 +316,16 @@ def before_request():
 
 
 if __name__ == '__main__':
-    app.run(ssl_context='adhoc')
+    HOST = 'localhost'
+    PORT = 5000
+
+    print("*" * 50)
+    print(f"Server starting...")
+    print(f"Access the application at: http://{HOST}:{PORT}")
+    print("*" * 50)
+
+    app.run(
+        host=HOST,
+        port=PORT,
+        debug=True
+    )
