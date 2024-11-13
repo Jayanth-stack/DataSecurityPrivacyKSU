@@ -1,331 +1,262 @@
-from urllib.parse import urlparse, urljoin
-from flask import render_template, redirect, url_for, flash, request, Flask, session, jsonify
-from flask_login import login_user, logout_user, login_required, current_user, LoginManager, UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
-import secrets
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_talisman import Talisman
-from flask_session import Session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from functools import wraps
+from werkzeug.security import check_password_hash, generate_password_hash
+from Database import SecureDB, DataConfidentiality, IntegrityProtection, AccessControl
 import logging
-from Database import SecureDB, DatabaseConfig, SecurityConfig
-import base64
-from cryptography.fernet import Fernet
+import os
+from datetime import datetime, timedelta
 
 # Configure logging
 logging.basicConfig(
-    filename='application.log',
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s: %(message)s'
+    filename='app.log',
+    level=logging.DEBUG,
+    format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)d]: %(message)s'
 )
 
 app = Flask(__name__)
-
-# Enhanced session configuration with security settings
-app.config.update(
-    SECRET_KEY=secrets.token_hex(32),
-    SESSION_TYPE='filesystem',
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Strict',  # Enhanced from 'Lax' to 'Strict'
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
-    # Additional security configurations
-    REMEMBER_COOKIE_SECURE=True,
-    REMEMBER_COOKIE_HTTPONLY=True,
-    REMEMBER_COOKIE_DURATION=timedelta(days=1),
-)
-
-# Initialize Flask-Session
-Session(app)
-
-# Setup enhanced security headers
-Talisman(app,
-         force_https=True,
-         strict_transport_security=True,
-         session_cookie_secure=True,
-         content_security_policy={
-             'default-src': "'self'",
-             'script-src': "'self'",
-             'style-src': "'self'",
-             'img-src': "'self' data:",
-             'font-src': "'self'",
-             'frame-ancestors': "'none'",  # Prevents clickjacking
-         },
-         feature_policy={
-             'geolocation': "'none'",
-             'microphone': "'none'",
-             'camera': "'none'",
-         }
-         )
-
-# Setup rate limiting with more restrictive limits
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["100 per day", "20 per hour"],
-    storage_uri="memory://"
-)
+# Fixed secret key - Don't use os.urandom as it generates new key on restart
+app.secret_key = 'your-fixed-secret-key-here'
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Initialize database
 db = SecureDB()
 
-# Login manager setup with enhanced security
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-login_manager.session_protection = 'strong'
-login_manager.login_message = 'Please log in to access this page.'
-login_manager.needs_refresh_message = 'Please reauthenticate to protect your account.'
 
-
-class User(UserMixin):
-    def __init__(self, user_data):
-        self.id = user_data['id']
-        self.username = user_data['username']
-        self.password_hash = user_data['password_hash']
-        self.group = user_data['group']
-        self.last_login = user_data.get('last_login')
-        self.login_attempts = user_data.get('login_attempts', 0)
-        self.locked_until = user_data.get('locked_until')
-        self._encryption_key = SecurityConfig.ENCRYPTION_KEY
-        self.fernet = Fernet(self._encryption_key)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def can_access_full_data(self):
-        return self.group == 'H'
-
-    def can_add_records(self):
-        return self.group == 'H'
-
-    def verify_data_integrity(self, data, signature):
-        """Verify the integrity of a single data item"""
-        return db.integrity.verify_record(data, signature)
-
-    def verify_query_completeness(self, records, merkle_root):
-        """Verify the completeness of query results"""
-        computed_root = db.integrity.compute_merkle_root(records)
-        return computed_root == merkle_root
-
-    @staticmethod
-    def get_by_username(username):
-        conn = None
-        try:
-            conn = db._get_db_connection(DatabaseConfig.DATABASE)
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT * FROM users 
-                WHERE username = %s
-            """, (username,))
-            user_data = cursor.fetchone()
-            return User(user_data) if user_data else None
-        finally:
-            if conn and conn.is_connected():
-                cursor.close()
-                conn.close()
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    conn = None
+def init_db():
+    """Initialize database and create test users if they don't exist"""
     try:
-        conn = db._get_db_connection(DatabaseConfig.DATABASE)
+        conn = db._get_db_connection(db.config.DATABASE)
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-        user_data = cursor.fetchone()
-        return User(user_data) if user_data else None
-    finally:
-        if conn and conn.is_connected():
-            cursor.close()
-            conn.close()
 
+        # Check if admin user exists
+        cursor.execute("SELECT * FROM users WHERE username = 'admin'")
+        if not cursor.fetchone():
+            # Create admin user
+            password_hash = generate_password_hash('Admin@123456')
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, salt, `group`) VALUES (%s, %s, %s, %s)",
+                ('admin', password_hash, 'salt', 'H')
+            )
 
-def update_login_attempts(username, success=True):
-    conn = None
-    try:
-        conn = db._get_db_connection(DatabaseConfig.DATABASE)
-        cursor = conn.cursor()
-
-        if success:
-            # Reset attempts on successful login
-            cursor.execute("""
-                UPDATE users 
-                SET login_attempts = 0, 
-                    last_login = NOW(),
-                    locked_until = NULL 
-                WHERE username = %s
-            """, (username,))
-        else:
-            # Increment attempts and possibly lock account
-            cursor.execute("""
-                UPDATE users 
-                SET login_attempts = login_attempts + 1,
-                    locked_until = CASE 
-                        WHEN login_attempts >= 4 THEN DATE_ADD(NOW(), INTERVAL 15 MINUTE)
-                        ELSE locked_until 
-                    END
-                WHERE username = %s
-            """, (username,))
+        # Check if regular user exists
+        cursor.execute("SELECT * FROM users WHERE username = 'regular_user'")
+        if not cursor.fetchone():
+            # Create regular user
+            password_hash = generate_password_hash('Regular@123456')
+            cursor.execute(
+                "INSERT INTO users (username, password_hash, salt, `group`) VALUES (%s, %s, %s, %s)",
+                ('regular_user', password_hash, 'salt', 'R')
+            )
 
         conn.commit()
+        logging.info("Database initialized successfully")
+    except Exception as e:
+        logging.error(f"Database initialization error: {str(e)}")
     finally:
         if conn and conn.is_connected():
             cursor.close()
             conn.close()
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            logging.debug("No user_id in session, redirecting to login")
+            flash('Please log in first.', 'error')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_group' not in session or session['user_group'] != 'H':
+            logging.debug("Non-admin user attempting to access admin area")
+            flash('Admin access required.', 'error')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
 
 
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+    # Clear any existing session
+    session.clear()
 
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
+        username = request.form.get('username')
+        password = request.form.get('password')
 
-        if not username or not password:
-            flash('Username and password are required')
-            return render_template('login.html'), 400
+        logging.debug(f"Login attempt for username: {username}")
 
-        user = User.get_by_username(username)
+        try:
+            conn = db._get_db_connection(db.config.DATABASE)
+            cursor = conn.cursor(dictionary=True)
 
-        # Check account lockout
-        if user and user.locked_until and user.locked_until > datetime.now():
-            flash('Account is temporarily locked. Please try again later.')
-            return render_template('login.html'), 429
+            cursor.execute(
+                "SELECT * FROM users WHERE username = %s",
+                (username,)
+            )
+            user = cursor.fetchone()
 
-        if user and user.check_password(password):
-            update_login_attempts(username, success=True)
-            login_user(user)
-            session.permanent = True
-            session.modified = True
+            if user and check_password_hash(user['password_hash'], password):
+                session.clear()
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['user_group'] = user['group']
+                session.permanent = True
 
-            next_page = request.args.get('next')
-            if not next_page or not is_safe_url(next_page):
-                next_page = url_for('dashboard')
-            return redirect(next_page)
+                logging.debug(f"Login successful for user: {username}")
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid username or password.', 'error')
+                logging.debug(f"Login failed for username: {username}")
 
-        if user:
-            update_login_attempts(username, success=False)
+        except Exception as e:
+            logging.error(f"Login error: {str(e)}")
+            flash('An error occurred during login.', 'error')
+        finally:
+            if 'conn' in locals() and conn.is_connected():
+                cursor.close()
+                conn.close()
 
-        flash('Invalid username or password')
-        return render_template('login.html'), 401
-
-    return render_template('login.html')
+    return render_template('html/login.html')
 
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
     try:
-        # Get data with integrity protection
-        result = db.get_user_data(current_user.username, current_user.group)
-
-        # Verify data integrity and completeness
-        records = result['records']
-        merkle_root = result['merkle_root']
-
-        if not current_user.verify_query_completeness(records, merkle_root):
-            flash('Warning: Query results may have been tampered with')
-            return render_template('error.html'), 400
-
-        return render_template('dashboard.html',
-                               data=records,
-                               can_add=current_user.can_add_records(),
-                               group=current_user.group)
+        logging.debug(f"Accessing dashboard. Session data: {session}")
+        user_data = db.get_user_data(session['username'], session['user_group'])
+        return render_template('html/dashboard.html',
+                               username=session['username'],
+                               user_group=session['user_group'],
+                               records=user_data.get('records', []),
+                               merkle_root=user_data.get('merkle_root', ''))
     except Exception as e:
-        app.logger.error(f"Dashboard error: {str(e)}")
-        flash('An error occurred while loading the dashboard')
+        logging.error(f"Dashboard error: {str(e)}")
+        flash('Error loading dashboard data.', 'error')
         return redirect(url_for('login'))
 
 
-@app.route('/add_record', methods=['POST'])
-@login_required
-def add_record():
-    if not current_user.can_add_records():
-        flash('Insufficient permissions')
-        return redirect(url_for('dashboard')), 403
-
-    try:
-        # Sanitize and validate input data
-        data = {k: v.strip() for k, v in request.form.items()}
-        required_fields = ['first_name', 'last_name', 'age', 'gender', 'condition', 'medication']
-
-        if not all(field in data for field in required_fields):
-            flash('All fields are required')
-            return redirect(url_for('dashboard')), 400
-
-        # Add record with encryption and integrity protection
-        if db.add_record(data, current_user.username):
-            flash('Record added successfully')
-        else:
-            flash('Error adding record')
-        return redirect(url_for('dashboard'))
-    except Exception as e:
-        app.logger.error(f"Error adding record: {str(e)}")
-        flash('An error occurred while adding the record')
-        return redirect(url_for('dashboard')), 500
-
-
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
+    logging.debug("User logging out")
     session.clear()
-    flash('You have been logged out.')
+    flash('You have been logged out successfully.', 'success')
     return redirect(url_for('login'))
 
 
-def is_safe_url(target):
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in ('http', 'https') and \
-        ref_url.netloc == test_url.netloc
+@app.route('/add-record', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def add_record():
+    if request.method == 'POST':
+        try:
+            record_data = {
+                'first_name': request.form.get('first_name'),
+                'last_name': request.form.get('last_name'),
+                'age': request.form.get('age'),
+                'gender': request.form.get('gender'),
+                'weight': request.form.get('weight'),
+                'height': request.form.get('height'),
+                'health_history': request.form.get('health_history')
+            }
+
+            result = db.add_record(record_data, session['username'])
+            if result.get('success'):
+                flash('Record added successfully!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Error adding record.', 'error')
+        except Exception as e:
+            logging.error(f"Add record error: {str(e)}")
+            flash('Error adding record.', 'error')
+
+    return render_template('html/add_record.html')
 
 
-# Error handlers
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template('404.html'), 404
+@app.route('/view-record/<int:record_id>')
+@login_required
+def view_record(record_id):
+    try:
+        conn = db._get_db_connection(db.config.DATABASE)
+        cursor = conn.cursor(dictionary=True)
 
+        cursor.execute("""
+            SELECT r.*, u.username 
+            FROM records r 
+            JOIN users u ON r.user_id = u.id 
+            WHERE r.id = %s
+        """, (record_id,))
 
-@app.errorhandler(500)
-def internal_error(error):
-    return render_template('500.html'), 500
+        record = cursor.fetchone()
+
+        if not record:
+            flash('Record not found.', 'error')
+            return redirect(url_for('dashboard'))
+
+        if session['user_group'] != 'H' and record['username'] != session['username']:
+            flash('Access denied.', 'error')
+            return redirect(url_for('dashboard'))
+
+        return render_template('html/view_record.html', record=record)
+
+    except Exception as e:
+        logging.error(f"View record error: {str(e)}")
+        flash('Error viewing record.', 'error')
+        return redirect(url_for('dashboard'))
+    finally:
+        if 'conn' in locals() and conn.is_connected():
+            cursor.close()
+            conn.close()
 
 
 @app.before_request
 def before_request():
-    if current_user.is_authenticated:
-        if not session.get('last_activity'):
-            logout_user()
-            return redirect(url_for('login'))
+    """Ensure user session is still valid"""
+    if 'user_id' in session:
+        try:
+            conn = db._get_db_connection(db.config.DATABASE)
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM users WHERE id = %s", (session['user_id'],))
+            if not cursor.fetchone():
+                session.clear()
+                flash('Session expired. Please login again.', 'error')
+                return redirect(url_for('login'))
+        except Exception as e:
+            logging.error(f"Session validation error: {str(e)}")
+        finally:
+            if 'conn' in locals() and conn.is_connected():
+                cursor.close()
+                conn.close()
 
-        last_activity = session.get('last_activity')
-        if (datetime.now() - datetime.fromtimestamp(last_activity)) > \
-                app.config['PERMANENT_SESSION_LIFETIME']:
-            logout_user()
-            session.clear()
-            flash('Your session has expired. Please login again.')
-            return redirect(url_for('login'))
 
-        session['last_activity'] = datetime.now().timestamp()
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('html/404.html'), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    logging.error(f"Internal server error: {str(error)}")
+    return render_template('html/500.html'), 500
 
 
 if __name__ == '__main__':
-    HOST = 'localhost'
-    PORT = 5000
-
-    print("*" * 50)
-    print(f"Server starting...")
-    print(f"Access the application at: http://{HOST}:{PORT}")
-    print("*" * 50)
-
-    app.run(
-        host=HOST,
-        port=PORT,
-        debug=True
-    )
+    init_db()  # Initialize database and create test users
+    app.run(debug=True)
