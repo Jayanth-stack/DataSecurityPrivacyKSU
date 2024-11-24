@@ -1,4 +1,5 @@
-# database.py - Part 1
+from typing import Dict, Union, List
+
 from flask import current_app
 from mysql.connector import Error, connect
 import mysql.connector
@@ -14,6 +15,7 @@ from cryptography.fernet import Fernet
 import secrets
 from werkzeug.security import generate_password_hash
 from faker import Faker
+from typing import Dict, List, Optional, Union, Any
 
 # Configure logging
 logging.basicConfig(
@@ -182,7 +184,6 @@ class DatabaseConfig:
         "  INDEX `idx_user_created` (`user_id`, `created_at`)"
         ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     )
-    # database.py - Part 2 (continued)
 
 
 class SecureDB:
@@ -191,6 +192,12 @@ class SecureDB:
         self.confidentiality = DataConfidentiality()
         self.integrity = IntegrityProtection()
         self.access_control = AccessControl()
+        self._dashboard_manager = None
+
+    def get_dashboard_manager(self):
+        if self._dashboard_manager is None:
+            self._dashboard_manager = DashboardDataManager(self)
+        return self._dashboard_manager
 
     def _get_db_connection(self, database=None):
         """Create a database connection"""
@@ -401,6 +408,91 @@ class SecureDB:
                 conn.close()
 
 
+def get_user_data(self, username, group):
+    """Get user data with security measures"""
+    conn = None
+    try:
+        conn = self._get_db_connection(self.config.DATABASE)
+        cursor = conn.cursor(dictionary=True)
+
+        # Get user_id
+        cursor.execute(
+            "SELECT id FROM users WHERE username = %s",
+            (username,)
+        )
+        user_data = cursor.fetchone()
+
+        if not user_data:
+            return {'records': [], 'error': 'User not found'}
+
+        # Build query based on group permissions
+        if group == 'H':
+            query = """
+                SELECT r.id, r.first_name, r.last_name, 
+                       r.encrypted_gender as gender, 
+                       r.encrypted_age as age,
+                       r.weight, r.height, r.health_history,
+                       r.created_at, r.updated_at,
+                       u.username 
+                FROM records r 
+                JOIN users u ON r.user_id = u.id 
+                ORDER BY r.created_at DESC
+            """
+            cursor.execute(query)
+        else:
+            query = """
+                SELECT r.id, r.encrypted_gender as gender, 
+                       r.encrypted_age as age,
+                       r.weight, r.height, r.health_history,
+                       r.created_at, r.updated_at
+                FROM records r 
+                JOIN users u ON r.user_id = u.id 
+                WHERE u.username = %s 
+                ORDER BY r.created_at DESC
+            """
+            cursor.execute(query, (username,))
+
+        records = cursor.fetchall()
+
+        # Process records
+        processed_records = []
+        for record in records:
+            try:
+                # Decrypt sensitive fields
+                if record.get('gender'):
+                    record['gender'] = self.confidentiality.decrypt_sensitive_fields(
+                        {'gender': record['gender']}
+                    )['gender']
+
+                if record.get('age'):
+                    record['age'] = self.confidentiality.decrypt_sensitive_fields(
+                        {'age': record['age']}
+                    )['age']
+
+                # Convert datetime objects to strings
+                if record.get('created_at'):
+                    record['created_at'] = record['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+                if record.get('updated_at'):
+                    record['updated_at'] = record['updated_at'].strftime('%Y-%m-%d %H:%M:%S')
+
+                processed_records.append(record)
+
+            except Exception as e:
+                logging.error(f"Error processing record {record.get('id')}: {str(e)}")
+                continue
+
+        return {
+            'records': processed_records,
+            'total_records': len(processed_records)
+        }
+
+    except Exception as e:
+        logging.error(f"Database error in get_user_data: {str(e)}")
+        return {'records': [], 'error': str(e)}
+    finally:
+        if conn and conn.is_connected():
+            cursor.close()
+            conn.close()
 def generate_sample_data():
     """Generate 100 sample healthcare records"""
     fake = Faker()
@@ -523,6 +615,262 @@ def setup_database():
         logging.error(f"Database setup failed: {err}")
         print(f"Error during database setup: {err}")
         raise
+
+
+class DashboardDataManager:
+    def __init__(self, db_instance: 'SecureDB'):
+        self.db = db_instance
+        self.logger = logging.getLogger(__name__)
+        self.confidentiality = db_instance.confidentiality
+        self.integrity = db_instance.integrity
+        self.access_control = db_instance.access_control
+
+    def _serialize_datetime(self, record: Dict) -> Dict:
+        """
+        Convert datetime objects to string format in a record
+        """
+        serialized_record = record.copy()
+        datetime_fields = ['created_at', 'updated_at', 'last_modified', 'locked_until']
+
+        for field in datetime_fields:
+            if field in serialized_record and serialized_record[field] is not None:
+                if isinstance(serialized_record[field], datetime):
+                    serialized_record[field] = serialized_record[field].strftime('%Y-%m-%d %H:%M:%S')
+
+        return serialized_record
+
+    # First, update the TABLES definition in your DatabaseConfig class:
+
+    class DatabaseConfig:
+        # ... other configurations ...
+
+        TABLES = {}
+        TABLES['users'] = (
+            "CREATE TABLE IF NOT EXISTS `users` ("
+            "  `id` int NOT NULL AUTO_INCREMENT,"
+            "  `username` varchar(80) NOT NULL UNIQUE,"
+            "  `password_hash` varchar(255) NOT NULL,"
+            "  `salt` varchar(64) NOT NULL,"
+            "  `group` varchar(10) NOT NULL,"
+            "  `last_login` datetime DEFAULT NULL,"
+            "  `login_attempts` int DEFAULT 0,"
+            "  `locked_until` datetime DEFAULT NULL,"
+            "  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,"
+            "  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+            "  PRIMARY KEY (`id`),"
+            "  INDEX `idx_username` (`username`),"
+            "  INDEX `idx_group` (`group`)"
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        )
+
+        TABLES['records'] = (
+            "CREATE TABLE IF NOT EXISTS `records` ("
+            "  `id` int NOT NULL AUTO_INCREMENT,"
+            "  `user_id` int NOT NULL,"
+            "  `first_name` varchar(255),"
+            "  `last_name` varchar(255),"
+            "  `encrypted_gender` varchar(255),"
+            "  `encrypted_age` varchar(255),"
+            "  `weight` float,"
+            "  `height` float,"
+            "  `health_history` text,"
+            "  `signature` varchar(64) NOT NULL,"
+            "  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,"
+            "  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
+            "  PRIMARY KEY (`id`),"
+            "  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,"
+            "  INDEX `idx_user_created` (`user_id`, `created_at`)"
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        )
+
+    # Then update the DashboardDataManager queries:
+
+    def get_dashboard_data(self, username: str, user_group: str) -> Dict[str, Union[List[Dict], str]]:
+        """
+        Fetch dashboard data based on user permissions
+        """
+        conn = None
+        try:
+            conn = self.db._get_db_connection(self.db.config.DATABASE)
+            cursor = conn.cursor(dictionary=True)
+
+            # Get accessible fields based on group permissions
+            if user_group == 'H':  # Admin users
+                query = """
+                    SELECT r.id, r.first_name, r.last_name, 
+                           r.encrypted_gender, r.encrypted_age,
+                           r.weight, r.height, r.health_history,
+                           r.created_at, r.updated_at, r.signature,
+                           u.username as creator_username
+                    FROM records r
+                    JOIN users u ON r.user_id = u.id
+                    ORDER BY r.created_at DESC
+                """
+                cursor.execute(query)
+            else:  # Regular users - limited access
+                query = """
+                    SELECT r.id, r.encrypted_gender, r.encrypted_age,
+                           r.weight, r.height,
+                           r.created_at, r.updated_at
+                    FROM records r
+                    JOIN users u ON r.user_id = u.id
+                    WHERE u.username = %s
+                    ORDER BY r.created_at DESC
+                """
+                cursor.execute(query, (username,))
+
+            records = cursor.fetchall()
+            processed_records = []
+
+            for record in records:
+                try:
+                    # Decrypt sensitive fields if present
+                    if record.get('encrypted_gender'):
+                        record['gender'] = self.confidentiality.decrypt_sensitive_fields(
+                            {'gender': record['encrypted_gender']}
+                        )['gender']
+                        record.pop('encrypted_gender')
+
+                    if record.get('encrypted_age'):
+                        record['age'] = self.confidentiality.decrypt_sensitive_fields(
+                            {'age': record['encrypted_age']}
+                        )['age']
+                        record.pop('encrypted_age')
+
+                    # Serialize datetime fields
+                    processed_record = self._serialize_datetime(record)
+
+                    # Remove signature from final output
+                    processed_record.pop('signature', None)
+
+                    processed_records.append(processed_record)
+                except Exception as e:
+                    self.logger.error(f"Error processing record {record.get('id')}: {str(e)}")
+                    continue
+
+            return {
+                'success': True,
+                'records': processed_records,
+                'count': len(processed_records)
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error in get_dashboard_data: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'records': []
+            }
+        finally:
+            if conn and conn.is_connected():
+                cursor.close()
+                conn.close()
+
+    def search_records(self,
+                       user_group: str,
+                       search_term: Optional[str] = None,
+                       filters: Optional[Dict] = None, username=None) -> Dict:
+        """
+        Search and filter dashboard records
+        """
+        conn = None
+        try:
+            conn = self.db._get_db_connection(self.db.config.DATABASE)
+            cursor = conn.cursor(dictionary=True)
+
+            # Build base query based on user group
+            if user_group == 'H':
+                base_query = """
+                    SELECT r.id, r.first_name, r.last_name, 
+                           r.encrypted_gender, r.encrypted_age,
+                           r.weight, r.height, r.health_history,
+                           r.created_at, r.updated_at, r.signature,
+                           u.username as creator_username
+                    FROM records r
+                    JOIN users u ON r.user_id = u.id
+                    WHERE 1=1
+                """
+            else:
+                base_query = """
+                    SELECT r.id, r.encrypted_gender, r.encrypted_age,
+                           r.weight, r.height,
+                           r.created_at, r.updated_at
+                    FROM records r
+                    JOIN users u ON r.user_id = u.id
+                    WHERE u.username = %s
+                """
+
+            params = []
+            if user_group != 'H':
+                params.append(username)
+
+            # Add search conditions
+            if search_term:
+                base_query += """ AND (
+                    r.first_name LIKE %s OR 
+                    r.last_name LIKE %s OR 
+                    CAST(r.id AS CHAR) LIKE %s
+                )"""
+                search_pattern = f"%{search_term}%"
+                params.extend([search_pattern, search_pattern, search_pattern])
+
+            # Add filters
+            if filters:
+                if filters.get('gender'):
+                    base_query += " AND r.encrypted_gender = %s"
+                    params.append(filters['gender'])
+                if filters.get('age_min'):
+                    base_query += " AND r.encrypted_age >= %s"
+                    params.append(int(filters['age_min']))
+                if filters.get('age_max'):
+                    base_query += " AND r.encrypted_age <= %s"
+                    params.append(int(filters['age_max']))
+
+            base_query += " ORDER BY r.created_at DESC"
+            cursor.execute(base_query, params)
+            records = cursor.fetchall()
+
+            processed_records = []
+            for record in records:
+                try:
+                    # Process the record
+                    if record.get('encrypted_gender'):
+                        record['gender'] = self.confidentiality.decrypt_sensitive_fields(
+                            {'gender': record['encrypted_gender']}
+                        )['gender']
+                        record.pop('encrypted_gender')
+
+                    if record.get('encrypted_age'):
+                        record['age'] = self.confidentiality.decrypt_sensitive_fields(
+                            {'age': record['encrypted_age']}
+                        )['age']
+                        record.pop('encrypted_age')
+
+                    # Serialize datetime fields
+                    processed_record = self._serialize_datetime(record)
+                    processed_record.pop('signature', None)
+                    processed_records.append(processed_record)
+                except Exception as e:
+                    self.logger.error(f"Error processing record {record.get('id')}: {str(e)}")
+                    continue
+
+            return {
+                'success': True,
+                'records': processed_records,
+                'count': len(processed_records)
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error in search_records: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e),
+                'records': []
+            }
+        finally:
+            if conn and conn.is_connected():
+                cursor.close()
+                conn.close()
 
 
 if __name__ == "__main__":

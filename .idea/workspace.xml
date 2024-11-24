@@ -4,22 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="597539de-96a3-486d-b2f3-1dec96e6981a" name="Changes" comment="fixing login page issues">
-      <change afterPath="$PROJECT_DIR$/flask_session/93403d00819f526a1c5adaca32f79bb3" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/html/404.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/html/500.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/html/AddRecord.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/html/Dashboard.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/html/base.html" afterDir="false" />
+    <list default="true" id="597539de-96a3-486d-b2f3-1dec96e6981a" name="Changes" comment="modifying database">
+      <change afterPath="$PROJECT_DIR$/setup_templates.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/404.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/500.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/dashboard.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/login.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Database.py" beforeDir="false" afterPath="$PROJECT_DIR$/Database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.log" beforeDir="false" afterPath="$PROJECT_DIR$/database.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flask_session/2029240f6d1128be89ddc32729463129" beforeDir="false" afterPath="$PROJECT_DIR$/flask_session/2029240f6d1128be89ddc32729463129" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/css/style.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/html/Login.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/html/Login.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/html/dashboard.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/html/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/html/404.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/html/500.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/html/AddRecord.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/html/Dashboard.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/html/Login.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/html/base.html" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,6 +31,7 @@
       <list>
         <option value="Flask Main" />
         <option value="HTML File" />
+        <option value="Python Script" />
       </list>
     </option>
   </component>
@@ -67,6 +68,7 @@
     "Flask server.Flask (app.py).executor": "Run",
     "Flask server.HealthManagement.executor": "Run",
     "Python.Database.executor": "Run",
+    "Python.setup_templates.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
@@ -94,6 +96,29 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Database.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="setup_templates" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="HealthManagement" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/setup_templates.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -138,6 +163,7 @@
       <list>
         <item itemvalue="Flask server.Flask (app.py)" />
         <item itemvalue="Python.Database" />
+        <item itemvalue="Python.setup_templates" />
       </list>
     </recent_temporary>
   </component>
@@ -159,7 +185,9 @@
       <updated>1730325805697</updated>
       <workItem from="1730325824591" duration="68000" />
       <workItem from="1730743322055" duration="3078000" />
-      <workItem from="1731343096647" duration="11843000" />
+      <workItem from="1731343096647" duration="13951000" />
+      <workItem from="1731631135424" duration="2072000" />
+      <workItem from="1732379005430" duration="10862000" />
     </task>
     <task id="LOCAL-00001" summary="first commit">
       <option name="closed" value="true" />
@@ -185,7 +213,15 @@
       <option name="project" value="LOCAL" />
       <updated>1731520887472</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="modifying database">
+      <option name="closed" value="true" />
+      <created>1731526434523</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1731526434523</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -196,11 +232,24 @@
     <MESSAGE value="first commit" />
     <MESSAGE value="implemented db functionality" />
     <MESSAGE value="fixing login page issues" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixing login page issues" />
+    <MESSAGE value="modifying database" />
+    <option name="LAST_COMMIT_MESSAGE" value="modifying database" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Database.py</url>
+          <line>515</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/HealthManagement$Database.coverage" NAME="Database Coverage Results" MODIFIED="1731524579638" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/HealthManagement$setup_templates.coverage" NAME="setup_templates Coverage Results" MODIFIED="1732383228483" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/HealthManagement$Database.coverage" NAME="Database Coverage Results" MODIFIED="1732389093708" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/HealthManagement$HealthManagement.coverage" NAME="HealthManagement Coverage Results" MODIFIED="1731343126225" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/HealthManagement$Flask__app_py_.coverage" NAME="Flask (app.py) Coverage Results" MODIFIED="1731526008024" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/HealthManagement$Flask__app_py_.coverage" NAME="Flask (app.py) Coverage Results" MODIFIED="1732389141141" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
 </project>
