@@ -12,8 +12,6 @@
 <body>
     <div id="root"></div>
 
-    
-
     <script type="text/babel">
         const SearchBar = ({ onSearch, onFilter }) => {
             const [searchTerm, setSearchTerm] = React.useState('');
@@ -82,11 +80,11 @@
                         ...searchParams.filters
                     });
 
-                    const response = await fetch(/dashboard/data?${queryParams});
+                    const response = await fetch(`/dashboard/data?${queryParams}`);
                     const data = await response.json();
 
                     if (!response.ok) {
-                        throw new Error(data.error || HTTP error! status: ${response.status});
+                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
                     }
 
                     if (data.error) {
@@ -112,7 +110,7 @@
                 }
 
                 try {
-                    const response = await fetch(/delete-record/${id}, {
+                    const response = await fetch(`/delete-record/${id}`, {
                         method: 'DELETE',
                     });
                     const data = await response.json();
@@ -124,7 +122,7 @@
                     fetchRecords();
                     alert('Record deleted successfully');
                 } catch (err) {
-                    alert(Error deleting record: ${err.message});
+                    alert(`Error deleting record: ${err.message}`);
                 }
             };
 
@@ -137,22 +135,22 @@
                         </td>
                     )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.weight ? ${record.weight} kg : '-'}
+                        {record.weight ? `${record.weight} kg` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.height ? ${record.height} cm : '-'}
+                        {record.height ? `${record.height} cm` : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {record.created_at ? new Date(record.created_at).toLocaleDateString() : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href={/view-record/${record.id}}
+                        <a href={`/view-record/${record.id}`}
                            className="text-blue-600 hover:text-blue-900 mr-3">
                             View
                         </a>
                         {userGroup === "H" && (
                             <>
-                                <a href={/edit-record/${record.id}}
+                                <a href={`/edit-record/${record.id}`}
                                    className="text-green-600 hover:text-green-900 mr-3">
                                     Edit
                                 </a>
