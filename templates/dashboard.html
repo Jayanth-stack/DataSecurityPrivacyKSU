@@ -16,7 +16,6 @@
         const SearchBar = ({ onSearch, onFilter }) => {
             const [searchTerm, setSearchTerm] = React.useState('');
             const [filters, setFilters] = React.useState({
-                gender: '',
                 age_min: '',
                 age_max: ''
             });
@@ -46,32 +45,6 @@
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <select
-                            name="gender"
-                            className="p-2 border rounded"
-                            value={filters.gender}
-                            onChange={handleFilterChange}
-                        >
-                            <option value="">All Genders</option>
-                            <option value="M">Male</option>
-                            <option value="F">Female</option>
-                        </select>
-                        <input
-                            type="number"
-                            name="age_min"
-                            placeholder="Min Age"
-                            className="p-2 border rounded w-24"
-                            value={filters.age_min}
-                            onChange={handleFilterChange}
-                        />
-                        <input
-                            type="number"
-                            name="age_max"
-                            placeholder="Max Age"
-                            className="p-2 border rounded w-24"
-                            value={filters.age_max}
-                            onChange={handleFilterChange}
-                        />
                         <button
                             onClick={handleSearch}
                             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
@@ -107,11 +80,11 @@
                         ...searchParams.filters
                     });
 
-                    const response = await fetch(`/dashboard/data?${queryParams}`);
+                    const response = await fetch(/dashboard/data?${queryParams});
                     const data = await response.json();
 
                     if (!response.ok) {
-                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                        throw new Error(data.error || HTTP error! status: ${response.status});
                     }
 
                     if (data.error) {
@@ -137,7 +110,7 @@
                 }
 
                 try {
-                    const response = await fetch(`/delete-record/${id}`, {
+                    const response = await fetch(/delete-record/${id}, {
                         method: 'DELETE',
                     });
                     const data = await response.json();
@@ -146,11 +119,10 @@
                         throw new Error(data.error || 'Failed to delete record');
                     }
 
-                    // Refresh records after deletion
                     fetchRecords();
                     alert('Record deleted successfully');
                 } catch (err) {
-                    alert(`Error deleting record: ${err.message}`);
+                    alert(Error deleting record: ${err.message});
                 }
             };
 
@@ -162,25 +134,23 @@
                             {record.first_name} {record.last_name}
                         </td>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.age}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.gender}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.weight ? `${record.weight} kg` : '-'}
+                        {record.weight ? ${record.weight} kg : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {record.height ? `${record.height} cm` : '-'}
+                        {record.height ? ${record.height} cm : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {record.created_at ? new Date(record.created_at).toLocaleDateString() : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <a href={`/view-record/${record.id}`}
+                        <a href={/view-record/${record.id}}
                            className="text-blue-600 hover:text-blue-900 mr-3">
                             View
                         </a>
                         {userGroup === "H" && (
                             <>
-                                <a href={`/edit-record/${record.id}`}
+                                <a href={/edit-record/${record.id}}
                                    className="text-green-600 hover:text-green-900 mr-3">
                                     Edit
                                 </a>
@@ -246,8 +216,6 @@
                                                 {userGroup === "H" && (
                                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                                 )}
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Height</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
