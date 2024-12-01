@@ -217,36 +217,69 @@ def dashboard_data():
         }), 500
 
 
+
 @app.route('/add-record', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def add_record():
     if request.method == 'POST':
         try:
+            # Validate required fields
+            required_fields = ['first_name', 'last_name', 'age', 'gender', 'weight', 'height']
+            for field in required_fields:
+                if not request.form.get(field):
+                    flash(f'{field.replace("_", " ").title()} is required.', 'error')
+                    return render_template('addrecord.html')
+
+            # Validate numeric fields
+            try:
+                age = int(request.form['age'])
+                weight = float(request.form['weight'])
+                height = float(request.form['height'])
+
+                if not (0 <= age <= 150):
+                    raise ValueError("Age must be between 0 and 150")
+                if not (0 <= weight <= 500):
+                    raise ValueError("Weight must be between 0 and 500 kg")
+                if not (0 <= height <= 300):
+                    raise ValueError("Height must be between 0 and 300 cm")
+            except ValueError as e:
+                flash(str(e), 'error')
+                return render_template('addrecord.html')
+
+            # Validate gender
+            if request.form['gender'] not in ['M', 'F']:
+                flash('Invalid gender selection.', 'error')
+                return render_template('addrecord.html')
+
+            # Prepare record data
             record_data = {
-                'first_name': request.form.get('first_name'),
-                'last_name': request.form.get('last_name'),
-                'age': request.form.get('age'),
-                'gender': request.form.get('gender'),
-                'weight': float(request.form.get('weight', 0)),
-                'height': float(request.form.get('height', 0)),
+                'first_name': request.form['first_name'],
+                'last_name': request.form['last_name'],
+                'age': age,
+                'gender': request.form['gender'],
+                'weight': weight,
+                'height': height,
                 'health_history': request.form.get('health_history', '')
             }
 
+            # Add record to database
             result = db.add_record(record_data, session['username'])
+
             if result.get('success'):
                 flash('Record added successfully!', 'success')
                 return redirect(url_for('dashboard'))
             else:
                 flash(result.get('message', 'Error adding record.'), 'error')
+                return render_template('addrecord.html')
 
-        except ValueError as ve:
-            flash('Please enter valid numerical values for weight and height.', 'error')
         except Exception as e:
             logging.error(f"Error adding record: {str(e)}", exc_info=True)
             flash('An error occurred while adding the record.', 'error')
+            return render_template('addrecord.html')
 
-    return render_template('add_record.html')
+    # GET request - show form
+    return render_template('addrecord.html')
 
 @app.errorhandler(404)
 def not_found_error(error):

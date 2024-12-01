@@ -873,5 +873,38 @@ class DashboardDataManager:
                 conn.close()
 
 
+def reset_encryption():
+    db = SecureDB()
+    conn = db._get_db_connection(db.config.DATABASE)
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Get all records
+        cursor.execute("SELECT * FROM records")
+        records = cursor.fetchall()
+
+        # Re-encrypt data with new key
+        for record in records:
+            if record['encrypted_gender']:
+                gender = record['encrypted_gender']
+                age = record['encrypted_age']
+
+                # Update record with new encryption
+                cursor.execute("""
+                    UPDATE records 
+                    SET encrypted_gender = %s, encrypted_age = %s
+                    WHERE id = %s
+                """, (gender, age, record['id']))
+
+        conn.commit()
+        print("Encryption reset successful")
+
+    except Exception as e:
+        print(f"Error resetting encryption: {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
 if __name__ == "__main__":
     setup_database()

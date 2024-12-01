@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - Healthcare System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="{{ url_for('dashboard') }}" class="text-xl font-bold">Healthcare System</a>
+            {% if session.get('user_id') %}
+                <div class="flex items-center space-x-4">
+                    <span>Welcome, {{ session.get('username') }}</span>
+                    {% if session.get('user_group') == 'H' %}
+                        <a href="{{ url_for('add_record') }}" class="px-4 py-2 bg-green-500 rounded hover:bg-green-600">Add Record</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="px-4 py-2 bg-blue-700 rounded hover:bg-blue-800">Logout</a>
+                </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2024 Healthcare System. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
